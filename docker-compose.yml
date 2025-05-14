@@ -1,0 +1,31 @@
+services:
+  scraper:
+    build: 
+      context: .
+      dockerfile: Dockerfile
+    image: rag-fin-scraper  # Added explicit image name
+    container_name: financial_scraper
+    volumes:
+      - ./data/chroma_db:/app/data/chroma_db
+    ports:
+      - 8501:8501
+    environment:
+      - PYTHONUNBUFFERED=1
+    tty: true
+    stdin_open: true
+  # chroma:
+  #   image: ghcr.io/chroma-core/chroma:latest
+  #   container_name: chroma_db
+  #   volumes:
+  #     - chroma_data:/chroma/chroma
+  #   ports:
+  #     - "8000:8000"
+  #   environment:
+  #     - ALLOW_RESET=true
+  #   restart: unless-stopped
+
+volumes:
+  # chroma_data:
+  #   driver: local
+  chroma_db:
+    driver: local

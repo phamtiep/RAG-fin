@@ -1,0 +1,46 @@
+# Web scraping
+beautifulsoup4
+requests
+requests-toolbelt
+
+# Data processing
+langchain
+langchain-core
+langchain-text-splitters
+langsmith
+langchain-community
+langchain-openai
+numpy
+langgraph
+# Vector database
+chromadb
+langchain_google_genai
+# OpenAI embeddings
+openai
+
+# Utilities
+certifi
+charset-normalizer
+idna
+jsonpatch
+jsonpointer
+pydantic
+pydantic_core
+PyYAML
+setuptools
+sniffio
+soupsieve
+SQLAlchemy
+typing-inspection
+typing_extensions
+urllib3
+tenacity
+python-dotenv
+streamlit
+
+llama-index
+llama-index-llms-gemini 
+google-generativeai
+sentence-transformers
+transformers
+torch
