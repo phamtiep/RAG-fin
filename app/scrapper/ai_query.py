@@ -141,7 +141,24 @@ class QueryAgent:
             name="financial_news",
             embedding_function=embedding_function
         )
+        count = self.collection.count()
+        print(f"Dữ liệu thu thập được có : {count} bản ghi")
         self.llm = prompt | model | StrOutputParser()
+        
+        additional_remove_time = (
+           "Remove any temporal (time-related) context from the following question. This includes words or phrases indicating time such as specific dates, times of day, relative time expressions (e.g., yesterday, next week, in 2025), or any reference to timeframes."
+            "Return only the modified question with the temporal context removed."
+            "Do not provide any explanation, comments, or extra output — return only the cleaned question."   
+            "Example Input:"
+            "Thị trường chứng khoán hôm nay thế nào ?"
+            "Expected Output:"
+            "Thị trường chứng khoán thế nào ?"
+            "Input question: {question}"
+        )
+        prompt_remove_time = ChatPromptTemplate.from_messages([
+            additional_remove_time
+        ])
+        self.llm_remove_time = prompt_remove_time | model | StrOutputParser()
 
     def extract_dates(self, question: str) -> tuple:
         """Extract dates from user's question"""
@@ -158,16 +175,25 @@ class QueryAgent:
         """Chuyển đổi chuỗi ngày tháng sang timestamp (số giây từ epoch)"""
         date_obj = datetime.strptime(date_str, "%Y-%m-%d")
         return float(date_obj.timestamp())
-    
+    def remove_time_query(self, question: str) -> str:
+        """Xóa các từ khóa liên quan đến thời gian trong câu hỏi"""
+        time_keywords = [
+            "hôm nay", "ngày hôm nay", "tuần này", "tháng này", "quý này", "năm nay",
+            "tuần trước", "tháng trước", "quý trước", "năm trước",
+            "tuần sau", "tháng sau", "quý sau", "năm sau"
+        ]
+        for keyword in time_keywords:
+            question = question.replace(keyword, "")
+        return question.strip()
     
     def query(self, question: str) -> str:
         start_date, end_date = self.extract_dates(question)
         print(start_date, end_date)
         where = None
-        if start_date == None and end_date:
-            start_date = (datetime.strptime(end_date, "%Y-%m-%d") - timedelta(days=1)).strftime("%Y-%m-%d")
-        if end_date == None and start_date:
-            end_date = (datetime.strptime(start_date, "%Y-%m-%d") + timedelta(days=1)).strftime("%Y-%m-%d")
+        if start_date is None and end_date:
+            start_date = end_date
+        if end_date is None and start_date:
+            end_date = start_date
         if start_date and end_date:
             # Chuyển đổi ngày tháng sang timestamp
             start_timestamp = datetime.strptime(start_date, "%Y-%m-%d").timestamp()
@@ -179,11 +205,7 @@ class QueryAgent:
                 {"date": {"$lte": end_timestamp}}
             ]
         }
-        wheretest = {"date":1746748800.0
-}
-        test  = self.collection.get(where=wheretest)
-        print(test)
-        # Perform query with date filtering
+
         results = self.collection.query(
             query_texts=[question],
             n_results=100,
@@ -191,12 +213,14 @@ class QueryAgent:
         )
         print(where)
         print(results)
+        
         context = ""
         for i in range(len(results["documents"])):
             context += str(results["documents"][i]) + "\n"
         context_str = context  
         query_str = question
-        text_summary = self.llm.invoke({"context_str": context_str, "query_str": query_str})
+        new_question = self.llm_remove_time.invoke({"question": query_str})
+        text_summary = self.llm.invoke({"context_str": context_str, "query_str": new_question})
         return text_summary
 
 
